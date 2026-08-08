@@ -266,8 +266,7 @@ impl<T: 'static> EventLoop<T> {
                     callback(event::Event::MemoryWarning, self.window_target());
                 },
                 MainEvent::Start => {
-                    // XXX: how to forward this state to applications?
-                    warn!("TODO: forward onStart notification to application");
+                    callback(event::Event::AppResumed, self.window_target());
                 },
                 MainEvent::Resume { .. } => {
                     debug!("App Resumed - is running");
@@ -283,8 +282,7 @@ impl<T: 'static> EventLoop<T> {
                     self.running = false;
                 },
                 MainEvent::Stop => {
-                    // XXX: how to forward this state to applications?
-                    warn!("TODO: forward onStop notification to application");
+                    callback(event::Event::AppSuspended, self.window_target());
                 },
                 MainEvent::Destroy => {
                     // XXX: maybe exit mainloop to drop things before being

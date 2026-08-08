@@ -213,6 +213,9 @@ impl<T: 'static> EventLoop<T> {
                 // SAFETY: The `object` in `UIApplicationWillEnterForegroundNotification` is
                 // documented to be `UIApplication`.
                 let app: Retained<UIApplication> = unsafe { Retained::cast(app) };
+                // Before un-occluding: the application should know it is in the
+                // foreground again before the first frame of it gets drawn.
+                app_state::handle_nonuser_event(mtm, EventWrapper::StaticEvent(Event::AppResumed));
                 send_occluded_event_for_all_windows(&app, false);
             },
         );
@@ -227,7 +230,14 @@ impl<T: 'static> EventLoop<T> {
                 // SAFETY: The `object` in `UIApplicationDidEnterBackgroundNotification` is
                 // documented to be `UIApplication`.
                 let app: Retained<UIApplication> = unsafe { Retained::cast(app) };
+                // After occluding, so that rendering has already stopped by the
+                // time the application starts freeing what it drew with. This is
+                // the last code that runs before iOS suspends the process.
                 send_occluded_event_for_all_windows(&app, true);
+                app_state::handle_nonuser_event(
+                    mtm,
+                    EventWrapper::StaticEvent(Event::AppSuspended),
+                );
             },
         );
         let _will_terminate_observer = create_observer(
@@ -309,7 +319,7 @@ impl<T: 'static> EventLoop<T> {
                 // We intentionally override neither the application nor the delegate, to allow the
                 // user to do so themselves!
                 None,
-                Some(&objc2_foundation::NSString::from_str("malmal.MobileInterop"))
+                Some(&objc2_foundation::NSString::from_str("malmal.MobileInterop")),
             )
         };
         unreachable!()

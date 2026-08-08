@@ -89,6 +89,16 @@ pub enum Event<T: 'static> {
     /// [`ApplicationHandler::resumed`]: crate::application::ApplicationHandler::resumed
     Resumed,
 
+    /// See [`ApplicationHandler::app_suspended`] for details.
+    ///
+    /// [`ApplicationHandler::app_suspended`]: crate::application::ApplicationHandler::app_suspended
+    AppSuspended,
+
+    /// See [`ApplicationHandler::app_resumed`] for details.
+    ///
+    /// [`ApplicationHandler::app_resumed`]: crate::application::ApplicationHandler::app_resumed
+    AppResumed,
+
     /// See [`ApplicationHandler::about_to_wait`] for details.
     ///
     /// [`ApplicationHandler::about_to_wait`]: crate::application::ApplicationHandler::about_to_wait
@@ -118,6 +128,8 @@ impl<T> Event<T> {
             LoopExiting => Ok(LoopExiting),
             Suspended => Ok(Suspended),
             Resumed => Ok(Resumed),
+            AppSuspended => Ok(AppSuspended),
+            AppResumed => Ok(AppResumed),
             MemoryWarning => Ok(MemoryWarning),
         }
     }
@@ -357,7 +369,8 @@ pub enum WindowEvent {
     /// ## Platform-specific
     ///
     /// - **Web:** Doesn't take into account CSS [`border`], [`padding`], or [`transform`].
-    /// - **macOS:** Only supported for pen/tablet input (Apple Pencil, Wacom tablets, etc.). Regular touchscreen input is unsupported.
+    /// - **macOS:** Only supported for pen/tablet input (Apple Pencil, Wacom tablets, etc.).
+    ///   Regular touchscreen input is unsupported.
     ///
     /// [`border`]: https://developer.mozilla.org/en-US/docs/Web/CSS/border
     /// [`padding`]: https://developer.mozilla.org/en-US/docs/Web/CSS/padding
@@ -847,11 +860,13 @@ pub struct Touch {
     ///
     /// ## Platform-specific
     ///
-    /// - Only available on **iOS** 9.0+, **Windows** 8+, **Web**, **Android**, and **macOS** (for pen/tablet input).
+    /// - Only available on **iOS** 9.0+, **Windows** 8+, **Web**, **Android**, and **macOS** (for
+    ///   pen/tablet input).
     /// - **Android**: This will never be [None]. If the device doesn't support pressure
     ///   sensitivity, force will either be 0.0 or 1.0. Also see the
     ///   [android documentation](https://developer.android.com/reference/android/view/MotionEvent#AXIS_PRESSURE).
-    /// - **macOS**: Touch events with pressure data are sent for pen/tablet input devices like Apple Pencil and Wacom tablets.
+    /// - **macOS**: Touch events with pressure data are sent for pen/tablet input devices like
+    ///   Apple Pencil and Wacom tablets.
     pub force: Option<Force>,
     /// Unique identifier of a finger.
     pub id: u64,

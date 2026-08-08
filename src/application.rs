@@ -187,6 +187,74 @@ pub trait ApplicationHandler<T: 'static = ()> {
         let _ = event_loop;
     }
 
+    /// Emitted when the application itself moves to the background.
+    ///
+    /// This is about the *application* lifecycle, where [`suspended`] is about the
+    /// render surface. The two are separate events because they do not coincide:
+    /// on Android the surface outlives [`onStop`] and is only torn down at
+    /// `surfaceDestroyed`, and on iOS the surface is never destroyed at all. An
+    /// application that wants to release memory when it stops being visible wants
+    /// this event; one that wants to drop its `wgpu::Surface` wants [`suspended`].
+    ///
+    /// Guaranteed to be delivered from inside the event loop, so it still arrives
+    /// after the last frame has been drawn and the window is gone.
+    ///
+    /// Applications should handle redundant (i.e. back-to-back) `app_suspended` or
+    /// [`app_resumed`] events gracefully.
+    ///
+    /// ## Portability
+    ///
+    /// Only Android and iOS have a real application lifecycle to report, and only
+    /// those emit this event. On every other platform it is never called.
+    ///
+    /// ## Android
+    ///
+    /// Emitted on [`onStop`], i.e. when the activity stops being visible. Not
+    /// [`onPause`], which also fires for a dialog or a split-screen focus change,
+    /// where the app is still on screen.
+    ///
+    /// [`onStop`]: https://developer.android.com/reference/android/app/Activity#onStop()
+    /// [`onPause`]: https://developer.android.com/reference/android/app/Activity#onPause()
+    ///
+    /// ## iOS
+    ///
+    /// Emitted in response to [`applicationDidEnterBackground`]. Not
+    /// `applicationWillResignActive`, which also fires for transient interruptions
+    /// like the app switcher or a notification banner.
+    ///
+    /// This is the last moment an application is allowed to run before it is
+    /// suspended, and iOS gives no warning at all before jetsam kills a
+    /// backgrounded app, so it is the only chance to free memory.
+    ///
+    /// [`applicationDidEnterBackground`]: https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1622997-applicationdidenterbackground
+    /// [`suspended`]: Self::suspended
+    /// [`app_resumed`]: Self::app_resumed
+    fn app_suspended(&mut self, event_loop: &ActiveEventLoop) {
+        let _ = event_loop;
+    }
+
+    /// Emitted when the application itself returns to the foreground.
+    ///
+    /// The counterpart to [`app_suspended`]; see it for how this differs from
+    /// [`resumed`], and for portability.
+    ///
+    /// ## Android
+    ///
+    /// Emitted on [`onStart`].
+    ///
+    /// [`onStart`]: https://developer.android.com/reference/android/app/Activity#onStart()
+    ///
+    /// ## iOS
+    ///
+    /// Emitted in response to [`applicationWillEnterForeground`].
+    ///
+    /// [`applicationWillEnterForeground`]: https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1623076-applicationwillenterforeground
+    /// [`app_suspended`]: Self::app_suspended
+    /// [`resumed`]: Self::resumed
+    fn app_resumed(&mut self, event_loop: &ActiveEventLoop) {
+        let _ = event_loop;
+    }
+
     /// Emitted when the event loop is being shut down.
     ///
     /// This is irreversible - if this method is called, it is guaranteed that the event loop
@@ -271,6 +339,16 @@ impl<A: ?Sized + ApplicationHandler<T>, T: 'static> ApplicationHandler<T> for &m
     }
 
     #[inline]
+    fn app_suspended(&mut self, event_loop: &ActiveEventLoop) {
+        (**self).app_suspended(event_loop);
+    }
+
+    #[inline]
+    fn app_resumed(&mut self, event_loop: &ActiveEventLoop) {
+        (**self).app_resumed(event_loop);
+    }
+
+    #[inline]
     fn exiting(&mut self, event_loop: &ActiveEventLoop) {
         (**self).exiting(event_loop);
     }
@@ -325,6 +403,16 @@ impl<A: ?Sized + ApplicationHandler<T>, T: 'static> ApplicationHandler<T> for Bo
     #[inline]
     fn suspended(&mut self, event_loop: &ActiveEventLoop) {
         (**self).suspended(event_loop);
+    }
+
+    #[inline]
+    fn app_suspended(&mut self, event_loop: &ActiveEventLoop) {
+        (**self).app_suspended(event_loop);
+    }
+
+    #[inline]
+    fn app_resumed(&mut self, event_loop: &ActiveEventLoop) {
+        (**self).app_resumed(event_loop);
     }
 
     #[inline]

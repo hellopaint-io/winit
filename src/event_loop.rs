@@ -644,6 +644,8 @@ pub(crate) fn dispatch_event_for_app<T: 'static, A: ApplicationHandler<T>>(
         Event::UserEvent(event) => app.user_event(event_loop, event),
         Event::Suspended => app.suspended(event_loop),
         Event::Resumed => app.resumed(event_loop),
+        Event::AppSuspended => app.app_suspended(event_loop),
+        Event::AppResumed => app.app_resumed(event_loop),
         Event::AboutToWait => app.about_to_wait(event_loop),
         Event::LoopExiting => app.exiting(event_loop),
         Event::MemoryWarning => app.memory_warning(event_loop),
