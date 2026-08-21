@@ -532,6 +532,7 @@ impl WinitView {
                     id: touch_id,
                     location: physical_location,
                     force,
+                    secondary_button: false,
                     phase,
                 }),
             }));

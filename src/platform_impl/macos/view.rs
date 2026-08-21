@@ -1123,6 +1123,7 @@ impl WinitView {
             phase,
             location: view_point.to_physical(self.scale_factor()),
             force: Some(Force::Normalized(pressure as f64)),
+            secondary_button: false,
             id: 0, // Use a fixed ID for pen events
         }));
     }

@@ -868,6 +868,15 @@ pub struct Touch {
     /// - **macOS**: Touch events with pressure data are sent for pen/tablet input devices like
     ///   Apple Pencil and Wacom tablets.
     pub force: Option<Force>,
+    /// Whether the tool's secondary (barrel) button was held while the event was
+    /// generated. Pen input arrives as a touch, so this is the only way a barrel
+    /// press reaches the application — there is no accompanying mouse event.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - Only available on **Windows** (pen input via `WM_POINTER`). Always `false` everywhere
+    ///   else.
+    pub secondary_button: bool,
     /// Unique identifier of a finger.
     pub id: u64,
 }
@@ -1101,6 +1110,7 @@ mod tests {
                     location: (0.0, 0.0).into(),
                     id: 0,
                     force: Some(event::Force::Normalized(0.0)),
+                    secondary_button: false,
                 }));
                 with_window_event(ThemeChanged(crate::window::Theme::Light));
                 with_window_event(Occluded(true));
@@ -1189,6 +1199,7 @@ mod tests {
             phase: event::TouchPhase::Started,
             location: (0.0, 0.0).into(),
             id: 0,
+            secondary_button: false,
             force: Some(event::Force::Normalized(0.0)),
         }
         .clone();

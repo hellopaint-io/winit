@@ -35,7 +35,7 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     ReleaseCapture, SetCapture, TrackMouseEvent, TME_LEAVE, TRACKMOUSEEVENT,
 };
 use windows_sys::Win32::UI::Input::Pointer::{
-    POINTER_FLAG_DOWN, POINTER_FLAG_UP, POINTER_FLAG_UPDATE,
+    POINTER_FLAG_DOWN, POINTER_FLAG_SECONDBUTTON, POINTER_FLAG_UP, POINTER_FLAG_UPDATE,
 };
 use windows_sys::Win32::UI::Input::Touch::{
     CloseTouchInputHandle, GetTouchInputInfo, TOUCHEVENTF_DOWN, TOUCHEVENTF_MOVE, TOUCHEVENTF_UP,
@@ -1972,6 +1972,7 @@ unsafe fn public_window_callback_inner(
                             },
                             location,
                             force: None, // WM_TOUCH doesn't support pressure information
+                            secondary_button: false,
                             id: input.dwID as u64,
                             device_id: DEVICE_ID,
                         }),
@@ -2118,6 +2119,13 @@ unsafe fn public_window_callback_inner(
                             },
                             location,
                             force,
+                            // A pen's barrel button. Windows reports it on the
+                            // pointer frame and generates no legacy mouse message
+                            // for it, so this flag is the only place it shows up.
+                            secondary_button: util::has_flag(
+                                pointer_info.pointerFlags,
+                                POINTER_FLAG_SECONDBUTTON,
+                            ),
                             id: pointer_info.pointerId as u64,
                             device_id: DEVICE_ID,
                         }),

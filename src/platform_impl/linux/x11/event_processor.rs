@@ -1397,6 +1397,7 @@ impl EventProcessor {
                     phase,
                     location,
                     force: None, // TODO
+                    secondary_button: false,
                     id,
                 }),
             };
