@@ -285,9 +285,14 @@ impl<T: 'static> EventLoop<T> {
                     callback(event::Event::AppSuspended, self.window_target());
                 },
                 MainEvent::Destroy => {
-                    // XXX: maybe exit mainloop to drop things before being
-                    // killed by the OS?
-                    warn!("TODO: forward onDestroy notification to application");
+                    // The Java main thread is parked inside
+                    // `GameActivity.terminateNativeCode` until `android_main`
+                    // returns, so the loop *has* to unwind from here. Ignoring
+                    // this event deadlocks the activity teardown and Android
+                    // reports every destroy as an ANR.
+                    debug!("App Destroyed - exiting the event loop");
+                    self.running = false;
+                    self.window_target.p.exit();
                 },
                 MainEvent::InsetsChanged { .. } => {
                     // XXX: how to forward this state to applications?
