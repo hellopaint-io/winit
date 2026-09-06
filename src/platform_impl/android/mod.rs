@@ -16,7 +16,7 @@ use crate::cursor::Cursor;
 use crate::dpi::{PhysicalPosition, PhysicalSize, Position, Size};
 use crate::error;
 use crate::error::EventLoopError;
-use crate::event::{self, Force, InnerSizeWriter, StartCause};
+use crate::event::{self, Force, InnerSizeWriter, StartCause, TouchTool};
 use crate::event_loop::{self, ActiveEventLoop as RootAEL, ControlFlow, DeviceEvents};
 use crate::platform::pump_events::PumpStatus;
 use crate::platform_impl::Fullscreen;
@@ -420,6 +420,13 @@ impl<T: 'static> EventLoop<T> {
                                 id: pointer.pointer_id() as u64,
                                 force: Some(Force::Normalized(pointer.pressure() as f64)),
                                 secondary_button: false,
+                                tool: match pointer.tool_type() {
+                                    android_activity::input::ToolType::Finger
+                                    | android_activity::input::ToolType::Palm => TouchTool::Finger,
+                                    android_activity::input::ToolType::Stylus
+                                    | android_activity::input::ToolType::Eraser => TouchTool::Pen,
+                                    _ => TouchTool::Unknown,
+                                },
                             }),
                         };
                         callback(event, self.window_target());

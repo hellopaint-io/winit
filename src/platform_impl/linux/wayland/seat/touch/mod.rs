@@ -10,7 +10,7 @@ use sctk::reexports::client::{Connection, Proxy, QueueHandle};
 use sctk::seat::touch::{TouchData, TouchHandler};
 
 use crate::dpi::LogicalPosition;
-use crate::event::{Touch, TouchPhase, WindowEvent};
+use crate::event::{Touch, TouchPhase, TouchTool, WindowEvent};
 
 use crate::platform_impl::wayland::state::WinitState;
 use crate::platform_impl::wayland::{self, DeviceId};
@@ -54,6 +54,7 @@ impl TouchHandler for WinitState {
                 location: location.to_physical(scale_factor),
                 force: None,
                 secondary_button: false,
+                tool: TouchTool::Finger,
                 id: id as u64,
             }),
             window_id,
@@ -98,6 +99,7 @@ impl TouchHandler for WinitState {
                 location: touch_point.location.to_physical(scale_factor),
                 force: None,
                 secondary_button: false,
+                tool: TouchTool::Finger,
                 id: id as u64,
             }),
             window_id,
@@ -144,6 +146,7 @@ impl TouchHandler for WinitState {
                 location: touch_point.location.to_physical(scale_factor),
                 force: None,
                 secondary_button: false,
+                tool: TouchTool::Finger,
                 id: id as u64,
             }),
             window_id,
@@ -177,6 +180,7 @@ impl TouchHandler for WinitState {
                     location,
                     force: None,
                     secondary_button: false,
+                    tool: TouchTool::Finger,
                     id: id as u64,
                 }),
                 window_id,

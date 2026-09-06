@@ -66,7 +66,8 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 use crate::dpi::{PhysicalPosition, PhysicalSize};
 use crate::error::EventLoopError;
 use crate::event::{
-    DeviceEvent, Event, Force, Ime, InnerSizeWriter, RawKeyEvent, Touch, TouchPhase, WindowEvent,
+    DeviceEvent, Event, Force, Ime, InnerSizeWriter, RawKeyEvent, Touch, TouchPhase, TouchTool,
+    WindowEvent,
 };
 use crate::event_loop::{ActiveEventLoop as RootAEL, ControlFlow, DeviceEvents, EventLoopClosed};
 use crate::keyboard::ModifiersState;
@@ -1973,6 +1974,9 @@ unsafe fn public_window_callback_inner(
                             location,
                             force: None, // WM_TOUCH doesn't support pressure information
                             secondary_button: false,
+                            // WM_TOUCH is the legacy touchscreen path; pen
+                            // input comes through WM_POINTER instead.
+                            tool: TouchTool::Finger,
                             id: input.dwID as u64,
                             device_id: DEVICE_ID,
                         }),
@@ -2126,6 +2130,11 @@ unsafe fn public_window_callback_inner(
                                 pointer_info.pointerFlags,
                                 POINTER_FLAG_SECONDBUTTON,
                             ),
+                            tool: match pointer_info.pointerType {
+                                PT_TOUCH => TouchTool::Finger,
+                                PT_PEN => TouchTool::Pen,
+                                _ => TouchTool::Unknown,
+                            },
                             id: pointer_info.pointerId as u64,
                             device_id: DEVICE_ID,
                         }),

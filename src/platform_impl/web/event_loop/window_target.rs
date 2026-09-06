@@ -14,7 +14,8 @@ use super::runner::{EventWrapper, Execution};
 use super::window::WindowId;
 use super::{backend, runner};
 use crate::event::{
-    DeviceId as RootDeviceId, ElementState, Event, KeyEvent, Touch, TouchPhase, WindowEvent,
+    DeviceId as RootDeviceId, ElementState, Event, KeyEvent, Touch, TouchPhase, TouchTool,
+    WindowEvent,
 };
 use crate::event_loop::{ControlFlow, DeviceEvents};
 use crate::keyboard::ModifiersState;
@@ -307,6 +308,7 @@ impl ActiveEventLoop {
                                 phase: TouchPhase::Moved,
                                 force: Some(force),
                                 secondary_button: false,
+                                tool: TouchTool::Unknown,
                                 location,
                             }),
                         },
@@ -414,6 +416,7 @@ impl ActiveEventLoop {
                                 phase: TouchPhase::Started,
                                 force: Some(force),
                                 secondary_button: false,
+                                tool: TouchTool::Unknown,
                                 location,
                             }),
                         },
@@ -483,6 +486,7 @@ impl ActiveEventLoop {
                                 phase: TouchPhase::Ended,
                                 force: Some(force),
                                 secondary_button: false,
+                                tool: TouchTool::Unknown,
                                 location,
                             }),
                         },
@@ -525,6 +529,7 @@ impl ActiveEventLoop {
                     phase: TouchPhase::Cancelled,
                     force: Some(force),
                     secondary_button: false,
+                    tool: TouchTool::Unknown,
                     location,
                 }),
             });

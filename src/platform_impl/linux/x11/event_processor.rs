@@ -22,7 +22,7 @@ use xkbcommon_dl::xkb_mod_mask_t;
 use crate::dpi::{PhysicalPosition, PhysicalSize};
 use crate::event::{
     DeviceEvent, ElementState, Event, Ime, InnerSizeWriter, MouseButton, MouseScrollDelta,
-    RawKeyEvent, Touch, TouchPhase, WindowEvent,
+    RawKeyEvent, Touch, TouchPhase, TouchTool, WindowEvent,
 };
 use crate::event_loop::ActiveEventLoop as RootAEL;
 use crate::keyboard::ModifiersState;
@@ -1398,6 +1398,7 @@ impl EventProcessor {
                     location,
                     force: None, // TODO
                     secondary_button: false,
+                    tool: TouchTool::Finger,
                     id,
                 }),
             };

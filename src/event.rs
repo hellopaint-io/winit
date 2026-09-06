@@ -877,8 +877,37 @@ pub struct Touch {
     /// - Only available on **Windows** (pen input via `WM_POINTER`). Always `false` everywhere
     ///   else.
     pub secondary_button: bool,
+    /// What put the touch on the screen — a fingertip or a pen.
+    ///
+    /// Pen input arrives as a touch on most platforms, so without this a
+    /// stylus contact is indistinguishable from a finger. Backends that
+    /// cannot tell report [`TouchTool::Unknown`]; treat that as "could be
+    /// either" rather than as a finger.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS**, **Android**, **Windows** (pen via `WM_POINTER`) and **macOS** report the real
+    ///   tool.
+    /// - **Wayland** and **X11** report [`TouchTool::Finger`]: a pen there is a tablet tool and
+    ///   arrives as pointer input, not as a touch.
+    /// - **Web** reports [`TouchTool::Unknown`].
+    pub tool: TouchTool,
     /// Unique identifier of a finger.
     pub id: u64,
+}
+
+/// What is touching the screen.
+///
+/// See [`Touch::tool`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum TouchTool {
+    /// The backend does not report which tool this touch came from.
+    #[default]
+    Unknown,
+    /// A fingertip.
+    Finger,
+    /// A pen or stylus, either end of it.
+    Pen,
 }
 
 /// Describes the force of a touch event
@@ -1111,6 +1140,7 @@ mod tests {
                     id: 0,
                     force: Some(event::Force::Normalized(0.0)),
                     secondary_button: false,
+                    tool: event::TouchTool::Unknown,
                 }));
                 with_window_event(ThemeChanged(crate::window::Theme::Light));
                 with_window_event(Occluded(true));
@@ -1200,6 +1230,7 @@ mod tests {
             location: (0.0, 0.0).into(),
             id: 0,
             secondary_button: false,
+            tool: event::TouchTool::Unknown,
             force: Some(event::Force::Normalized(0.0)),
         }
         .clone();

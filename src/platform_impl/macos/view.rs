@@ -1116,7 +1116,7 @@ impl WinitView {
         let view_point = LogicalPosition::new(view_point.x, view_point.y);
 
         let pressure = unsafe { event.pressure() };
-        use crate::event::{Force, Touch};
+        use crate::event::{Force, Touch, TouchTool};
 
         self.queue_event(WindowEvent::Touch(Touch {
             device_id: DEVICE_ID,
@@ -1124,6 +1124,7 @@ impl WinitView {
             location: view_point.to_physical(self.scale_factor()),
             force: Some(Force::Normalized(pressure as f64)),
             secondary_button: false,
+            tool: TouchTool::Pen,
             id: 0, // Use a fixed ID for pen events
         }));
     }

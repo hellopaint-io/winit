@@ -15,7 +15,9 @@ use objc2_ui_kit::{
 use super::app_state::{self, EventWrapper};
 use super::window::WinitUIWindow;
 use crate::dpi::PhysicalPosition;
-use crate::event::{ElementState, Event, Force, KeyEvent, Touch, TouchPhase, WindowEvent};
+use crate::event::{
+    ElementState, Event, Force, KeyEvent, Touch, TouchPhase, TouchTool, WindowEvent,
+};
 use crate::keyboard::{Key, KeyCode, KeyLocation, NamedKey, NativeKeyCode, PhysicalKey};
 use crate::platform_impl::platform::DEVICE_ID;
 use crate::platform_impl::KeyEventExtra;
@@ -533,6 +535,15 @@ impl WinitView {
                     location: physical_location,
                     force,
                     secondary_button: false,
+                    // `UITouchType` is a struct of associated constants, not
+                    // an enum, so it is compared rather than matched.
+                    tool: if touch_type == UITouchType::Pencil {
+                        TouchTool::Pen
+                    } else if touch_type == UITouchType::Direct {
+                        TouchTool::Finger
+                    } else {
+                        TouchTool::Unknown
+                    },
                     phase,
                 }),
             }));
