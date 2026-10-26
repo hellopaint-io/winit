@@ -31,6 +31,7 @@ use crate::platform_impl::wayland::seat::{
 };
 use crate::platform_impl::wayland::types::kwin_blur::KWinBlurManager;
 use crate::platform_impl::wayland::types::wp_fractional_scaling::FractionalScalingManager;
+use crate::platform_impl::wayland::types::wp_tablet_input_v2::TabletManager;
 use crate::platform_impl::wayland::types::wp_viewporter::ViewporterState;
 use crate::platform_impl::wayland::types::xdg_activation::XdgActivationState;
 use crate::platform_impl::wayland::window::{WindowRequests, WindowState};
@@ -109,6 +110,9 @@ pub struct WinitState {
     /// KWin blur manager.
     pub kwin_blur_manager: Option<KWinBlurManager>,
 
+    /// Graphics tablet manager.
+    pub tablet_manager: Option<TabletManager>,
+
     /// Loop handle to re-register event sources, such as keyboard repeat.
     pub loop_handle: LoopHandle<'static, Self>,
 
@@ -142,10 +146,14 @@ impl WinitState {
         let monitors = output_state.outputs().map(MonitorHandle::new).collect();
 
         let seat_state = SeatState::new(globals, queue_handle);
+        let tablet_manager = TabletManager::new(globals, queue_handle).ok();
 
         let mut seats = AHashMap::default();
         for seat in seat_state.seats() {
-            seats.insert(seat.id(), WinitSeatState::new());
+            seats.insert(
+                seat.id(),
+                WinitSeatState::new(&seat, tablet_manager.as_ref(), queue_handle),
+            );
         }
 
         let (viewporter_state, fractional_scaling_manager) =
@@ -177,6 +185,7 @@ impl WinitState {
             viewporter_state,
             fractional_scaling_manager,
             kwin_blur_manager: KWinBlurManager::new(globals, queue_handle).ok(),
+            tablet_manager,
 
             seats,
             text_input_state: TextInputState::new(globals, queue_handle).ok(),

@@ -11,6 +11,7 @@ use sctk::reexports::client::protocol::wl_touch::WlTouch;
 use sctk::reexports::client::{Connection, Proxy, QueueHandle};
 use sctk::reexports::protocols::wp::relative_pointer::zv1::client::zwp_relative_pointer_v1::ZwpRelativePointerV1;
 use sctk::reexports::protocols::wp::text_input::zv3::client::zwp_text_input_v3::ZwpTextInputV3;
+use wayland_protocols::wp::tablet::zv2::client::zwp_tablet_seat_v2::ZwpTabletSeatV2;
 
 use sctk::seat::pointer::{ThemeSpec, ThemedPointer};
 use sctk::seat::{Capability as SeatCapability, SeatHandler, SeatState};
@@ -18,6 +19,7 @@ use sctk::seat::{Capability as SeatCapability, SeatHandler, SeatState};
 use crate::event::WindowEvent;
 use crate::keyboard::ModifiersState;
 use crate::platform_impl::wayland::state::WinitState;
+use crate::platform_impl::wayland::types::wp_tablet_input_v2::TabletManager;
 
 mod keyboard;
 mod pointer;
@@ -57,11 +59,21 @@ pub struct WinitSeatState {
 
     /// Whether we have pending modifiers.
     modifiers_pending: bool,
+
+    /// The graphics tablets on the seat.
+    tablet_seat: Option<ZwpTabletSeatV2>,
 }
 
 impl WinitSeatState {
-    pub fn new() -> Self {
-        Default::default()
+    pub fn new(
+        seat: &WlSeat,
+        tablet_manager: Option<&TabletManager>,
+        queue_handle: &QueueHandle<WinitState>,
+    ) -> Self {
+        Self {
+            tablet_seat: tablet_manager.map(|manager| manager.get_tablet_seat(seat, queue_handle)),
+            ..Default::default()
+        }
     }
 }
 
@@ -202,10 +214,11 @@ impl SeatHandler for WinitState {
     fn new_seat(
         &mut self,
         _connection: &Connection,
-        _queue_handle: &QueueHandle<Self>,
+        queue_handle: &QueueHandle<Self>,
         seat: WlSeat,
     ) {
-        self.seats.insert(seat.id(), WinitSeatState::new());
+        let seat_state = WinitSeatState::new(&seat, self.tablet_manager.as_ref(), queue_handle);
+        self.seats.insert(seat.id(), seat_state);
     }
 
     fn remove_seat(
@@ -214,7 +227,11 @@ impl SeatHandler for WinitState {
         _queue_handle: &QueueHandle<Self>,
         seat: WlSeat,
     ) {
-        let _ = self.seats.remove(&seat.id());
+        if let Some(tablet_seat) =
+            self.seats.remove(&seat.id()).and_then(|seat_state| seat_state.tablet_seat)
+        {
+            tablet_seat.destroy();
+        }
         self.on_keyboard_destroy(&seat.id());
     }
 }

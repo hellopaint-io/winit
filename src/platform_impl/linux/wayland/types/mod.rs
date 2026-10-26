@@ -3,5 +3,6 @@
 pub mod cursor;
 pub mod kwin_blur;
 pub mod wp_fractional_scaling;
+pub mod wp_tablet_input_v2;
 pub mod wp_viewporter;
 pub mod xdg_activation;
