@@ -423,8 +423,8 @@ impl<T: 'static> EventLoop<T> {
                                 tool: match pointer.tool_type() {
                                     android_activity::input::ToolType::Finger
                                     | android_activity::input::ToolType::Palm => TouchTool::Finger,
-                                    android_activity::input::ToolType::Stylus
-                                    | android_activity::input::ToolType::Eraser => TouchTool::Pen,
+                                    android_activity::input::ToolType::Stylus => TouchTool::Pen,
+                                    android_activity::input::ToolType::Eraser => TouchTool::Eraser,
                                     _ => TouchTool::Unknown,
                                 },
                             }),

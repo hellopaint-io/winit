@@ -7,8 +7,8 @@ use objc2::rc::{Retained, WeakId};
 use objc2::runtime::{AnyObject, Sel};
 use objc2::{declare_class, msg_send_id, mutability, sel, ClassType, DeclaredClass};
 use objc2_app_kit::{
-    NSApplication, NSCursor, NSEvent, NSEventPhase, NSEventSubtype, NSResponder, NSTextInputClient,
-    NSTrackingRectTag, NSView, NSViewFrameDidChangeNotification,
+    NSApplication, NSCursor, NSEvent, NSEventPhase, NSEventSubtype, NSPointingDeviceType,
+    NSResponder, NSTextInputClient, NSTrackingRectTag, NSView, NSViewFrameDidChangeNotification,
 };
 use objc2_foundation::{
     MainThreadMarker, NSArray, NSAttributedString, NSAttributedStringKey, NSCopying,
@@ -139,6 +139,10 @@ pub struct ViewState {
 
     /// The state of the `Option` as `Alt`.
     option_as_alt: Cell<OptionAsAlt>,
+
+    /// Whether the tablet tool in proximity is a pen's eraser end. Only
+    /// proximity events name the tool, so it is remembered until the next.
+    tablet_eraser: Cell<bool>,
 }
 
 declare_class!(
@@ -706,6 +710,12 @@ declare_class!(
             });
         }
 
+        #[method(tabletProximity:)]
+        fn tablet_proximity(&self, event: &NSEvent) {
+            trace_scope!("tabletProximity:");
+            self.update_tablet_tool(event);
+        }
+
         #[method(magnifyWithEvent:)]
         fn magnify_with_event(&self, event: &NSEvent) {
             trace_scope!("magnifyWithEvent:");
@@ -813,6 +823,7 @@ impl WinitView {
             accepts_first_mouse,
             _ns_window: WeakId::new(&window.retain()),
             option_as_alt: Cell::new(option_as_alt),
+            tablet_eraser: Cell::new(false),
         });
         let this: Retained<Self> = unsafe { msg_send_id![super(this), init] };
 
@@ -1091,10 +1102,23 @@ impl WinitView {
         });
     }
 
+    /// Proximity events arrive both through `tabletProximity:` and as mouse
+    /// events with the proximity subtype.
+    fn update_tablet_tool(&self, event: &NSEvent) {
+        let eraser = unsafe {
+            event.isEnteringProximity()
+                && event.pointingDeviceType() == NSPointingDeviceType::Eraser
+        };
+        self.ivars().tablet_eraser.set(eraser);
+    }
+
     fn touch_event(&self, event: &NSEvent, phase: TouchPhase) {
         let subtype = unsafe { event.subtype() };
         if subtype != NSEventSubtype::TabletPoint && subtype != NSEventSubtype::TabletProximity {
             return;
+        }
+        if subtype == NSEventSubtype::TabletProximity {
+            self.update_tablet_tool(event);
         }
 
         let window_point = unsafe { event.locationInWindow() };
@@ -1124,7 +1148,7 @@ impl WinitView {
             location: view_point.to_physical(self.scale_factor()),
             force: Some(Force::Normalized(pressure as f64)),
             secondary_button: false,
-            tool: TouchTool::Pen,
+            tool: if self.ivars().tablet_eraser.get() { TouchTool::Eraser } else { TouchTool::Pen },
             id: 0, // Use a fixed ID for pen events
         }));
     }

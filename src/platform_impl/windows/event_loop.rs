@@ -47,20 +47,21 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     GetMenu, LoadCursorW, MsgWaitForMultipleObjectsEx, PeekMessageW, PostMessageW,
     RegisterClassExW, RegisterWindowMessageA, SetCursor, SetWindowPos, TranslateMessage,
     CREATESTRUCTW, GIDC_ARRIVAL, GIDC_REMOVAL, GWL_STYLE, GWL_USERDATA, HTCAPTION, HTCLIENT,
-    MINMAXINFO, MNC_CLOSE, MSG, MWMO_INPUTAVAILABLE, NCCALCSIZE_PARAMS, PM_REMOVE, PT_PEN,
-    PT_TOUCH, QS_ALLINPUT, RI_MOUSE_HWHEEL, RI_MOUSE_WHEEL, SC_MINIMIZE, SC_RESTORE,
-    SIZE_MAXIMIZED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, WHEEL_DELTA, WINDOWPOS,
-    WMSZ_BOTTOM, WMSZ_BOTTOMLEFT, WMSZ_BOTTOMRIGHT, WMSZ_LEFT, WMSZ_RIGHT, WMSZ_TOP, WMSZ_TOPLEFT,
-    WMSZ_TOPRIGHT, WM_CAPTURECHANGED, WM_CLOSE, WM_CREATE, WM_DESTROY, WM_DPICHANGED,
-    WM_ENTERSIZEMOVE, WM_EXITSIZEMOVE, WM_GETMINMAXINFO, WM_IME_COMPOSITION, WM_IME_ENDCOMPOSITION,
-    WM_IME_SETCONTEXT, WM_IME_STARTCOMPOSITION, WM_INPUT, WM_INPUT_DEVICE_CHANGE, WM_KEYDOWN,
-    WM_KEYUP, WM_KILLFOCUS, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP,
-    WM_MENUCHAR, WM_MOUSEHWHEEL, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_NCACTIVATE, WM_NCCALCSIZE,
-    WM_NCCREATE, WM_NCDESTROY, WM_NCLBUTTONDOWN, WM_PAINT, WM_POINTERDOWN, WM_POINTERUP,
-    WM_POINTERUPDATE, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETCURSOR, WM_SETFOCUS, WM_SETTINGCHANGE,
-    WM_SIZE, WM_SIZING, WM_SYSCOMMAND, WM_SYSKEYDOWN, WM_SYSKEYUP, WM_TOUCH, WM_WINDOWPOSCHANGED,
-    WM_WINDOWPOSCHANGING, WM_XBUTTONDOWN, WM_XBUTTONUP, WNDCLASSEXW, WS_EX_LAYERED,
-    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_OVERLAPPED, WS_POPUP, WS_VISIBLE,
+    MINMAXINFO, MNC_CLOSE, MSG, MWMO_INPUTAVAILABLE, NCCALCSIZE_PARAMS, PEN_FLAG_ERASER,
+    PEN_FLAG_INVERTED, PM_REMOVE, PT_PEN, PT_TOUCH, QS_ALLINPUT, RI_MOUSE_HWHEEL, RI_MOUSE_WHEEL,
+    SC_MINIMIZE, SC_RESTORE, SIZE_MAXIMIZED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER,
+    WHEEL_DELTA, WINDOWPOS, WMSZ_BOTTOM, WMSZ_BOTTOMLEFT, WMSZ_BOTTOMRIGHT, WMSZ_LEFT, WMSZ_RIGHT,
+    WMSZ_TOP, WMSZ_TOPLEFT, WMSZ_TOPRIGHT, WM_CAPTURECHANGED, WM_CLOSE, WM_CREATE, WM_DESTROY,
+    WM_DPICHANGED, WM_ENTERSIZEMOVE, WM_EXITSIZEMOVE, WM_GETMINMAXINFO, WM_IME_COMPOSITION,
+    WM_IME_ENDCOMPOSITION, WM_IME_SETCONTEXT, WM_IME_STARTCOMPOSITION, WM_INPUT,
+    WM_INPUT_DEVICE_CHANGE, WM_KEYDOWN, WM_KEYUP, WM_KILLFOCUS, WM_LBUTTONDOWN, WM_LBUTTONUP,
+    WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MENUCHAR, WM_MOUSEHWHEEL, WM_MOUSEMOVE, WM_MOUSEWHEEL,
+    WM_NCACTIVATE, WM_NCCALCSIZE, WM_NCCREATE, WM_NCDESTROY, WM_NCLBUTTONDOWN, WM_PAINT,
+    WM_POINTERDOWN, WM_POINTERUP, WM_POINTERUPDATE, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETCURSOR,
+    WM_SETFOCUS, WM_SETTINGCHANGE, WM_SIZE, WM_SIZING, WM_SYSCOMMAND, WM_SYSKEYDOWN, WM_SYSKEYUP,
+    WM_TOUCH, WM_WINDOWPOSCHANGED, WM_WINDOWPOSCHANGING, WM_XBUTTONDOWN, WM_XBUTTONUP, WNDCLASSEXW,
+    WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_OVERLAPPED, WS_POPUP,
+    WS_VISIBLE,
 };
 
 use crate::dpi::{PhysicalPosition, PhysicalSize};
@@ -2072,6 +2073,19 @@ unsafe fn public_window_callback_inner(
                         continue;
                     }
 
+                    let pen_info = match pointer_info.pointerType {
+                        PT_PEN => util::GET_POINTER_PEN_INFO.and_then(|GetPointerPenInfo| {
+                            let mut pen_info = mem::MaybeUninit::uninit();
+                            match unsafe {
+                                GetPointerPenInfo(pointer_info.pointerId, pen_info.as_mut_ptr())
+                            } {
+                                0 => None,
+                                _ => Some(unsafe { pen_info.assume_init() }),
+                            }
+                        }),
+                        _ => None,
+                    };
+
                     let force = match pointer_info.pointerType {
                         PT_TOUCH => {
                             let mut touch_info = mem::MaybeUninit::uninit();
@@ -2089,19 +2103,8 @@ unsafe fn public_window_callback_inner(
                                 }
                             })
                         },
-                        PT_PEN => {
-                            let mut pen_info = mem::MaybeUninit::uninit();
-                            util::GET_POINTER_PEN_INFO.and_then(|GetPointerPenInfo| {
-                                match unsafe {
-                                    GetPointerPenInfo(pointer_info.pointerId, pen_info.as_mut_ptr())
-                                } {
-                                    0 => None,
-                                    _ => normalize_pointer_pressure(unsafe {
-                                        pen_info.assume_init().pressure
-                                    }),
-                                }
-                            })
-                        },
+                        PT_PEN => pen_info
+                            .and_then(|pen_info| normalize_pointer_pressure(pen_info.pressure)),
                         _ => None,
                     };
 
@@ -2132,6 +2135,17 @@ unsafe fn public_window_callback_inner(
                             ),
                             tool: match pointer_info.pointerType {
                                 PT_TOUCH => TouchTool::Finger,
+                                // The Surface Pen and USI pens flag their
+                                // eraser end. `INVERTED` is set while the
+                                // flipped pen hovers, `ERASER` once it touches.
+                                PT_PEN
+                                    if pen_info.is_some_and(|pen_info| {
+                                        pen_info.penFlags & (PEN_FLAG_ERASER | PEN_FLAG_INVERTED)
+                                            != 0
+                                    }) =>
+                                {
+                                    TouchTool::Eraser
+                                },
                                 PT_PEN => TouchTool::Pen,
                                 _ => TouchTool::Unknown,
                             },

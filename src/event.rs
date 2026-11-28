@@ -888,9 +888,13 @@ pub struct Touch {
     ///
     /// - **iOS**, **Android**, **Windows** (pen via `WM_POINTER`) and **macOS** report the real
     ///   tool.
-    /// - **Wayland** and **X11** report [`TouchTool::Finger`]: a pen there is a tablet tool and
-    ///   arrives as pointer input, not as a touch.
+    /// - **X11** reports [`TouchTool::Finger`]: a pen there arrives as pointer input, not as a
+    ///   touch.
+    /// - **Wayland** reports [`TouchTool::Finger`] for the touch screen and [`TouchTool::Pen`] for
+    ///   a graphics tablet's pen.
     /// - **Web** reports [`TouchTool::Unknown`].
+    /// - [`TouchTool::Eraser`] comes from **Windows**, **Android**, **Wayland** and **macOS**. iOS
+    ///   pens have no eraser end.
     pub tool: TouchTool,
     /// Unique identifier of a finger.
     pub id: u64,
@@ -906,8 +910,13 @@ pub enum TouchTool {
     Unknown,
     /// A fingertip.
     Finger,
-    /// A pen or stylus, either end of it.
+    /// The writing tip of a pen or stylus.
     Pen,
+    /// The eraser end of a pen or stylus, for pens that have one.
+    ///
+    /// Backends that can't tell the two ends apart report [`TouchTool::Pen`]
+    /// for both.
+    Eraser,
 }
 
 /// Describes the force of a touch event

@@ -29,7 +29,7 @@ use wayland_protocols::wp::tablet::zv2::client::zwp_tablet_pad_strip_v2::ZwpTabl
 use wayland_protocols::wp::tablet::zv2::client::zwp_tablet_pad_v2::{self, ZwpTabletPadV2};
 use wayland_protocols::wp::tablet::zv2::client::zwp_tablet_seat_v2::{self, ZwpTabletSeatV2};
 use wayland_protocols::wp::tablet::zv2::client::zwp_tablet_tool_v2::{
-    ButtonState, Event as ToolEvent, ZwpTabletToolV2,
+    ButtonState, Event as ToolEvent, Type as ToolType, ZwpTabletToolV2,
 };
 use wayland_protocols::wp::tablet::zv2::client::zwp_tablet_v2::{self, ZwpTabletV2};
 
@@ -92,6 +92,10 @@ struct TabletToolState {
     /// Side buttons currently held.
     buttons_down: u8,
 
+    /// Whether this is a pen's eraser end. The compositor makes a separate
+    /// tool object for each end and names its type once, when it's created.
+    eraser: bool,
+
     /// What happened since the last `frame`.
     pending: PendingFrame,
 }
@@ -107,6 +111,14 @@ struct PendingFrame {
 }
 
 impl TabletToolState {
+    fn tool(&self) -> TouchTool {
+        if self.eraser {
+            TouchTool::Eraser
+        } else {
+            TouchTool::Pen
+        }
+    }
+
     /// The window of the surface the tool is over, if it is a window's main
     /// surface rather than one of its decorations.
     fn window_id(&self) -> Option<wayland::WindowId> {
@@ -168,6 +180,9 @@ impl Dispatch<ZwpTabletToolV2, TabletToolData, WinitState> for TabletManager {
         let touch_id = TOOL_TOUCH_ID_OFFSET + tool.id().protocol_id() as u64;
 
         match event {
+            ToolEvent::Type { tool_type } => {
+                data.eraser = tool_type == WEnum::Value(ToolType::Eraser);
+            },
             ToolEvent::ProximityIn { surface, .. } => data.pending.proximity_in = Some(surface),
             ToolEvent::ProximityOut => data.pending.proximity_out = true,
             ToolEvent::Down { .. } => data.pending.down = true,
@@ -220,7 +235,7 @@ impl Dispatch<ZwpTabletToolV2, TabletToolData, WinitState> for TabletManager {
                         // Windows reports the barrel button on the touch, so
                         // pen input looks the same on both.
                         secondary_button: data.buttons_down != 0,
-                        tool: TouchTool::Pen,
+                        tool: data.tool(),
                         id: touch_id,
                     })
                 };
@@ -266,7 +281,7 @@ impl Dispatch<ZwpTabletToolV2, TabletToolData, WinitState> for TabletManager {
                             location: data.position.to_physical(scale_factor),
                             force: None,
                             secondary_button: false,
-                            tool: TouchTool::Pen,
+                            tool: data.tool(),
                             id: touch_id,
                         }),
                         window_id,
